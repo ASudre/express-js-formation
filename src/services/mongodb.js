@@ -1,28 +1,42 @@
-const { MongoClient } = require('mongodb');
+const ObjectId = require('mongodb').ObjectId;
 
-const url = 'mongodb://localhost:27017';
-const client = new MongoClient(url);
+const COLLECTION = 'players';
 
-const dbName = 'myProject';
+const insertOneInDb = async (req) => req.dao(COLLECTION)
+    .insertOne(req.body);
 
-const findInDb = async () => {
-  await client.connect();
-  console.log('Connected successfully to server');
-  const db = client.db(dbName);
-  const collection = db.collection('fruits');
-  return collection.find({}).toArray();
+const findInDb = async (req) => {
+    const { query: { limit, skip } } = req;
+    let players = req.dao(COLLECTION).find({});
+    if (limit) {
+        players = players
+            .sort()
+            .skip(parseInt(skip))
+            .limit(parseInt(limit))
+    }
+    return players.toArray();
 }
 
-const insertInDb = async (fruit) => {
-  await client.connect();
-  console.log('Connected successfully to server');
-  const db = client.db(dbName);
-  const collection = db.collection('fruits');
-  await collection.insertOne(fruit);
-  return 'ok'
+const findManyInDb = async (req) => {
+    return req.dao(COLLECTION).find({
+        _id: {
+            $in: req.query.ids.map(id => ObjectId(id))
+        }
+    }).toArray()
 }
 
-module.exports = {
-  findInDb,
-  insertInDb,
+const removeInDb = async (req) => req.dao(COLLECTION)
+    .deleteOne({ _id: ObjectId(req.params.id) });
+
+const findOneInDb = async (req) => req.dao(COLLECTION)
+    .findOne({ _id: ObjectId(req.params.id) });
+
+const updateOneInDb = async (req) => {
+    const { firstName, lastName, age, position, ligue1 } = req.body;
+    req.dao(COLLECTION).updateOne(
+        { _id: ObjectId(req.params.id) },
+        { $set: { firstName, lastName, age, position, ligue1 } }
+    );
 }
+
+module.exports = { findInDb, findOneInDb, findManyInDb, insertOneInDb, removeInDb, updateOneInDb };

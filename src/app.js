@@ -1,19 +1,14 @@
 const express = require('express');
-
-const sampleRouter = require('./router/sample')
+const router = require('./router/players');
 
 const app = express();
 
-app.use((req, res, next) => {
-  console.log('start of request')
-  next();
-})
+app.use(express.json());
+app.use('/players', router);
 
-app.use('/sample', sampleRouter);
-
-app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(500).send('Something broke!')
+app.use((err, res) => {
+    console.log(err);
+    res.status(500).send('Something broke');
 })
 
 module.exports = app;
