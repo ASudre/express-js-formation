@@ -1,19 +1,17 @@
-const express = require('express');
+const http = require('http');
+const app = require('./src/app');
+const config = require('./src/config');
 
-const app = express();
+(async function run() {
+  const server = http.createServer(app);
 
-const port = 8000;
+  server.listen(config.PORT, config.HOST);
+  console.log(`Server running on ${config.HOST}:${config.PORT}`);
 
-app.use((req, res, next) => {
-  console.log('start of request')
-  next();
-})
-
-app.get('/', (req, res) => {
-  console.log('here')
-  res.sendStatus(500);
-})
-
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
-});
+  ['SIGINT', 'SIGTERM'].forEach((signal) => {
+    process.on(signal, async () => {
+      server.close();
+      process.exit(1);
+    });
+  });
+}());
