@@ -1,22 +1,38 @@
 const { MongoClient } = require('mongodb');
+const config = require('../config');
+const { DB_URL_TEMPLATE } = require('../config');
 
-const url = 'mongodb://localhost:27017';
-const client = new MongoClient(url);
+const getDbName = (instance) => {
+  return config.DB_NAME_TEMPLATE.replace('{{instance}}', instance);
+}
 
-const dbName = 'equipe-de-france';
+const dbConnections = new Map();
 
-const useDb = async (req, res, next) => {
-    try {
-        await client.connect();
-        console.log('Connected successfully to server');
-        const db = client.db(dbName);
-        req.dao = (collectionName) => db.collection(collectionName);
+const getConnection = async (instance) => {
+  if (!dbConnections.has(instance)) {
+    dbConnections.set(
+      instance,
+      await MongoClient.connect(
+        DB_URL_TEMPLATE,
+        { useNewUrlParser: true, useUnifiedTopology: true },
+      )
+    );
+  }
+  return dbConnections.get(instance);
+}
 
-    } catch (error) {
-        console.log('Connected successfully to server');
-    }
-    next();
+const useDb = async (req, _res, next) => {
+  try {
+    const instance = req.headers['x-ib-instance'];
+    const connection = await getConnection(instance);
+    const db = connection.db(getDbName(instance));
+    req.dao = (collectionName) => db.collection(collectionName);
+  } catch (error) {
+    console.error(error);
+    console.log('Connected failure to server');
+  }
+  next();
 };
 
-module.exports = useDb;
+module.exports = { useDb, getConnection };
 
